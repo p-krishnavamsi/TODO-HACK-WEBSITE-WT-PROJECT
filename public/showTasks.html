@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Todos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- App Bar -->
+  <nav class="appbar">
+    <div class="brand-name">TodoHack</div>
+    <div class="nav-right">
+      <a href="index.html">Back to Task Manager</a>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- Task List -->
+    <div style="width: 100%;" class="task-list" id="task-list">
+      <h1>Your Todos</h1>
+      <!-- Tasks will be displayed here -->
+    </div>
+  </div>
+
+  <script>
+    const apiUrl = 'http://localhost:5000/tasks'; // Your API URL
+
+    // Function to fetch and display all tasks
+    function fetchTasks() {
+      fetch(apiUrl)
+        .then((response) => response.json())
+        .then((tasks) => {
+          const taskList = document.getElementById('task-list');
+          taskList.innerHTML = ''; // Clear any existing tasks
+
+          tasks.forEach((task) => {
+            const taskItem = document.createElement('div');
+            taskItem.className = 'task-item';
+
+            taskItem.innerHTML = `
+  <h3>${task.title}</h3>
+  <p>${task.description}</p>
+<p><strong>Scheduled at:</strong> ${new Date(task.createdAt).toLocaleString()}</p>
+  <p>Status: ${task.completed ? '✅ Completed' : '🕒 Pending'}</p>
+  <button class="complete-btn" onclick="toggleCompletion('${task._id}', ${task.completed})">
+    Mark as ${task.completed ? 'Pending' : 'Completed'}
+  </button>
+  <button class="delete-btn" onclick="deleteTask('${task._id}')">Delete</button>
+`;
+
+            taskList.appendChild(taskItem);
+          });
+        })
+        .catch((error) => console.error('Error fetching tasks:', error));
+    }
+
+    // Function to delete a task
+    function deleteTask(taskId) {
+      fetch(`${apiUrl}/${taskId}`, { method: 'DELETE' })
+        .then(() => fetchTasks())
+        .catch((error) => console.error('Error deleting task:', error));
+    }
+
+    // Function to toggle task completion status
+    function toggleCompletion(taskId, currentStatus) {
+      fetch(`${apiUrl}/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: !currentStatus }),
+      })
+        .then(() => fetchTasks())
+        .catch((error) => console.error('Error updating task:', error));
+    }
+
+    // Fetch tasks when the page loads
+    window.onload = fetchTasks;
+  </script>
+</body>
+</html>

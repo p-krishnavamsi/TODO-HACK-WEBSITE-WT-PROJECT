@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- App Bar -->
+  <nav class="appbar">
+    <div class="brand-name">TodoHack</div>
+    <div class="nav-right">
+      <a href="showtasks.html">Show Your Todos</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Left Side: Form Section -->
+    <div class="left-section">
+      <div class="form-container">
+        <h1>Task Manager</h1>
+        <input type="text" id="task-title" placeholder="Task Title" required />
+        <textarea id="task-description" placeholder="Task Description" required></textarea>
+        <input type="datetime-local" id="task-datetime" placeholder="Schedule your task" required />
+        <button type="button" onclick="addTask()">Add Task</button>
+      </div>
+    </div>
+  
+    <!-- Right Side: Task List Section -->
+    <div class="right-section">
+      <div class="task-list" id="task-list">
+        <!-- Tasks will be displayed here -->
+      </div>
+    </div>
+  </div>
+  
+
+  <script src="app.js">
+    </script>
+</body>
+</html>
+
+
+
