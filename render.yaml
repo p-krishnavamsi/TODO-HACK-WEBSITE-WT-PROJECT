@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: todo-backend
+    runtime: node
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://user:password@cluster0.xxx.mongodb.net/taskmanager?retryWrites=true&w=majority
+    plan: free
