@@ -16,65 +16,134 @@
   </nav>
 
   <div class="container">
-
     <!-- Task List -->
     <div style="width: 100%;" class="task-list" id="task-list">
       <h1>Your Todos</h1>
-      <!-- Tasks will be displayed here -->
+      <div id="loading-message">Loading tasks...</div>
+      <div id="error-message" style="color: red; display: none;"></div>
     </div>
   </div>
 
   <script>
-    const apiUrl = 'http://localhost:5000/tasks'; // Your API URL
+    // Updated to use your Render backend URL
+    const apiUrl = 'https://todo-backend-fkid.onrender.com/tasks';
 
-    // Function to fetch and display all tasks
-    function fetchTasks() {
-      fetch(apiUrl)
-        .then((response) => response.json())
-        .then((tasks) => {
-          const taskList = document.getElementById('task-list');
-          taskList.innerHTML = ''; // Clear any existing tasks
-
-          tasks.forEach((task) => {
-            const taskItem = document.createElement('div');
-            taskItem.className = 'task-item';
-
-            taskItem.innerHTML = `
-  <h3>${task.title}</h3>
-  <p>${task.description}</p>
-<p><strong>Scheduled at:</strong> ${new Date(task.createdAt).toLocaleString()}</p>
-  <p>Status: ${task.completed ? '✅ Completed' : '🕒 Pending'}</p>
-  <button class="complete-btn" onclick="toggleCompletion('${task._id}', ${task.completed})">
-    Mark as ${task.completed ? 'Pending' : 'Completed'}
-  </button>
-  <button class="delete-btn" onclick="deleteTask('${task._id}')">Delete</button>
-`;
-
-            taskList.appendChild(taskItem);
-          });
-        })
-        .catch((error) => console.error('Error fetching tasks:', error));
+    // Improved fetch with error handling
+    async function fetchTasks() {
+      try {
+        document.getElementById('loading-message').style.display = 'block';
+        document.getElementById('error-message').style.display = 'none';
+        
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const tasks = await response.json();
+        renderTasks(tasks);
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+        document.getElementById('error-message').textContent = 
+          'Failed to load tasks. Please try again later.';
+        document.getElementById('error-message').style.display = 'block';
+      } finally {
+        document.getElementById('loading-message').style.display = 'none';
+      }
     }
 
-    // Function to delete a task
-    function deleteTask(taskId) {
-      fetch(`${apiUrl}/${taskId}`, { method: 'DELETE' })
-        .then(() => fetchTasks())
-        .catch((error) => console.error('Error deleting task:', error));
+    // Separate rendering function
+    function renderTasks(tasks) {
+      const taskList = document.getElementById('task-list');
+      
+      // Clear existing content but keep the h1 and message divs
+      const preservedElements = Array.from(taskList.children).filter(
+        child => ['H1', 'DIV'].includes(child.tagName)
+      );
+      taskList.innerHTML = '';
+      preservedElements.forEach(el => taskList.appendChild(el));
+
+      if (tasks.length === 0) {
+        const emptyMsg = document.createElement('p');
+        emptyMsg.textContent = 'No tasks found. Add some tasks!';
+        taskList.appendChild(emptyMsg);
+        return;
+      }
+
+      tasks.forEach((task) => {
+        const taskItem = document.createElement('div');
+        taskItem.className = 'task-item';
+
+        taskItem.innerHTML = `
+          <h3>${escapeHtml(task.title)}</h3>
+          <p>${escapeHtml(task.description)}</p>
+          <p><strong>Scheduled at:</strong> ${new Date(task.createdAt).toLocaleString()}</p>
+          <p>Status: ${task.completed ? '✅ Completed' : '🕒 Pending'}</p>
+          <button class="complete-btn" onclick="toggleCompletion('${escapeHtml(task._id)}', ${task.completed})">
+            Mark as ${task.completed ? 'Pending' : 'Completed'}
+          </button>
+          <button class="delete-btn" onclick="deleteTask('${escapeHtml(task._id)}')">Delete</button>
+        `;
+
+        taskList.appendChild(taskItem);
+      });
     }
 
-    // Function to toggle task completion status
-    function toggleCompletion(taskId, currentStatus) {
-      fetch(`${apiUrl}/${taskId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completed: !currentStatus }),
-      })
-        .then(() => fetchTasks())
-        .catch((error) => console.error('Error updating task:', error));
+    // Basic HTML escaping for security
+    function escapeHtml(unsafe) {
+      if (!unsafe) return '';
+      return unsafe.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
-    // Fetch tasks when the page loads
+    // Enhanced delete function
+    async function deleteTask(taskId) {
+      if (!confirm('Are you sure you want to delete this task?')) return;
+      
+      try {
+        const response = await fetch(`${apiUrl}/${taskId}`, { 
+          method: 'DELETE' 
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete task');
+        }
+        
+        fetchTasks(); // Refresh the list
+      } catch (error) {
+        console.error('Error deleting task:', error);
+        alert('Failed to delete task. Please try again.');
+      }
+    }
+
+    // Enhanced toggle function
+    async function toggleCompletion(taskId, currentStatus) {
+      try {
+        const response = await fetch(`${apiUrl}/${taskId}`, {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ completed: !currentStatus }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to update task');
+        }
+        
+        fetchTasks(); // Refresh the list
+      } catch (error) {
+        console.error('Error updating task:', error);
+        alert('Failed to update task status. Please try again.');
+      }
+    }
+
+    // Initialize when page loads
     window.onload = fetchTasks;
   </script>
 </body>

@@ -1,73 +1,57 @@
-const apiUrl = 'http://localhost:5000/tasks';
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const path = require('path');
+const taskRoutes = require('./routes/taskRoutes');
+const cors = require('cors');
+const helmet = require('helmet'); // Add this line
 
-function fetchTasks() {
-  fetch(apiUrl)
-    .then((response) => response.json())
-    .then((tasks) => {
-      const taskList = document.getElementById('task-list');
-      taskList.innerHTML = ''; 
+const app = express();
+const PORT = process.env.PORT || 5000;
 
-      tasks.forEach((task) => {
-        const taskItem = document.createElement('div');
-        taskItem.className = 'task-item';
+// Middleware
+app.use(helmet()); // Security headers
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://your-frontend-domain.vercel.app',
+    'https://todo-backend-fkid.onrender.com'
+  ],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE']
+}));
 
-        taskItem.innerHTML = `
-          <h3>${task.title}</h3>
-          <p>${task.description}</p>
-          <p>Status: ${task.completed ? 'Completed' : 'Pending'}</p>
-          <p><strong>Scheduled at:</strong> ${new Date(task.createdAt).toLocaleString()}</p>
-          <button class="complete-btn" onclick="toggleCompletion('${task._id}', ${task.completed})">
-            Mark as ${task.completed ? 'Pending' : 'Completed'}
-          </button>
-          <button class="delete-btn" onclick="deleteTask('${task._id}')">Delete</button>
-        `;
+app.use(express.json({ limit: '10kb' }));
+app.use(bodyParser.urlencoded({ extended: true }));
 
-        taskList.appendChild(taskItem);
-      });
-    })
-    .catch((error) => console.error('Error fetching tasks:', error));
-}
+// MongoDB Connection
+mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://krishnavamsipattamatta:krishnavamsi143@cluster0.vbk5oaj.mongodb.net/taskmanager?retryWrites=true&w=majority', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000
+})
+.then(() => console.log('Connected to MongoDB Atlas'))
+.catch(err => {
+  console.error('MongoDB connection error:', err);
+  process.exit(1);
+});
 
-function addTask() {
-  const title = document.getElementById('task-title').value;
-  const description = document.getElementById('task-description').value;
-  console.log("in the add task module");
+// Routes
+app.use('/tasks', taskRoutes);
 
-  if (!title || !description) {
-    alert('Please fill in all fields');
-    return;
-  }
+// Health check
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
 
-  const newTask = { title, description, completed: false };
+// Error handling
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Internal Server Error' });
+});
 
-  fetch(apiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(newTask),
-  })
-    .then((response) => response.json())
-    .then(() => {
-      fetchTasks(); 
-      document.getElementById('task-title').value = ''; 
-      document.getElementById('task-description').value = '';
-    })
-    .catch((error) => console.error('Error adding task:', error));
-}
-
-function deleteTask(taskId) {
-  fetch(`${apiUrl}/${taskId}`, { method: 'DELETE' })
-    .then(() => fetchTasks()) 
-    .catch((error) => console.error('Error deleting task:', error));
-}
-
-function toggleCompletion(taskId, currentStatus) {
-  fetch(`${apiUrl}/${taskId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ completed: !currentStatus }),
-  })
-    .then(() => fetchTasks()) 
-    .catch((error) => console.error('Error updating task:', error));
-}
-
-window.onload = fetchTasks;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
