@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const taskRoutes = require('./routes/taskRoutes');
 const cors = require('cors');
-const helmet = require('helmet'); // Add this line
+const helmet = require('helmet');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -14,15 +14,16 @@ const PORT = process.env.PORT || 5000;
 app.use(helmet()); // Security headers
 app.use(cors({
   origin: [
-    
-    'https://your-frontend-domain.vercel.app',
-    'https://todo-backend-fkid.onrender.com'
+    'http://localhost:3000', // Local development
+    'https://your-frontend-domain.vercel.app', // Your production frontend
+    'https://todo-backend-fkid.onrender.com' // Your Render backend
   ],
   methods: ['GET', 'POST', 'PATCH', 'DELETE']
 }));
 
 app.use(express.json({ limit: '10kb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://krishnavamsipattamatta:krishnavamsi143@cluster0.vbk5oaj.mongodb.net/taskmanager?retryWrites=true&w=majority', {
@@ -40,12 +41,12 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://krishnavamsipattamatt
 // Routes
 app.use('/tasks', taskRoutes);
 
-// Health check
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy' });
 });
 
-// Error handling
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Internal Server Error' });
